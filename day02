@@ -1,0 +1,10 @@
+1.点击事件的4种写法。
+  A：让内部类实现接口
+  class MyListener implements OnClickListener
+  
+  B:使用匿名内部类实现接口
+  new OnClickListener
+  
+  C：外部类实现接口
+  
+  D：在控件里添加onClick属性，开发不常用。

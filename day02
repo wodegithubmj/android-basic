@@ -8,3 +8,7 @@
   C：外部类实现接口
   
   D：在控件里添加onClick属性，开发不常用。
+
+2.xml文件生成与解析相关的API。
+  生成：XmlSerializer
+  解析：XmlPullParser

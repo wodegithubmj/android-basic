@@ -1,0 +1,334 @@
+###数据存储
+1. 文件存储
+2. 数据库存储-- sqlite
+
+
+####数据库创建
+1. 定义一个类，继承SqliteOpenHelper
+
+		public class MyOpenHelper extends SQLiteOpenHelper {
+2. 重写构造方法 、 onCreate 、onUpgrade
+
+
+3. 在构造方法里面定义数据库名称
+
+	
+		/**
+		 * 用来规定数据库的名称 、 游标工厂、 数据库版本
+		 */
+		public MyOpenHelper(Context context) {
+			/**
+			 * 参数一： 上下文
+			 * 参数二： 数据库名称
+			 * 参数三： 游标工厂，用于创建游标
+			 * 参数四： 数据库版本 ，从1开始 1.0  -- 2.0 --- 3.0
+			 */
+			super(context, "stu.db", null, 1);
+		}
+4. 得到对象，创建数据库
+
+		//1.得到自己的数据库帮助类对象
+        MyOpenHelper helper = new MyOpenHelper(this);
+        
+        //创建一个数据库并且打开 【如果数据库不存在的话】
+        //打开一个数据库【如果数据库存在的话】
+        helper.getWritableDatabase();
+
+
+
+###数据库表的创建
+
+> 使用onCreate方法来创建，该方法只有第一次创建数据库的时候调用，以后都不会执行了。
+
+1. 定义表结构信息
+
+		/**
+		 * 第一次创建数据库的时候调用 ，这里面通常用来创建数据库表
+		 * db ---- > 已经创建好的数据库对象
+	 	*/
+		@Override
+		public void onCreate(SQLiteDatabase db) {
+			System.out.println("onCreate---");
+			String sql = "create table stu (_id integer primary key autoincrement " +
+					", name varchar(10) , age integer)";
+			db.execSQL(sql);
+		}
+2. 得到对象，创建数据库
+
+		//1.得到自己的数据库帮助类对象
+        MyOpenHelper helper = new MyOpenHelper(this);
+        
+        //创建一个数据库并且打开 【如果数据库不存在的话】
+        //打开一个数据库【如果数据库存在的话】
+        helper.getWritableDatabase();
+
+
+
+####数据库升级
+
+> 只有当数据库的版本比以前要大的时候才更新，一般在里面可以做表字段的更新、添加新的表、删除某一张表
+
+	/**
+	 * 该方法只有当数据库版本号更新的时候调用
+	 * 注意： 数据库版本只能升级、不能降级。
+	 * 
+	 * 用来更新表字段 、或者是添加新的表，甚至是删除某一张表。
+	 */
+	@Override
+	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		System.out.println("onUpgrade-----");
+		
+		if(oldVersion == 1){
+			//只要加2个字段
+			
+		}else if( oldVersion == 2){
+			//只要加一个字段
+			//只要加一个字段
+		}
+		
+		//修改一张表 stu  , 添加一个新的字段  phone---varchar
+		String sql = "alter table stu add phone varchar";
+		db.execSQL(sql);
+	}
+
+
+####数据库操作的CRUD 脚本语句
+
+* insert
+
+		insert into stu (name,age,phone) values ('zhangsan' , 18 ,'10086' )
+* delete
+
+		delete from stu where name  = 'zhangsan';
+
+* update
+
+		update stu set age = 28 where name = 'zhangsan'
+
+* query
+
+
+		select (phone) from stu where name='zhangsan'
+
+
+
+###查看数据库数据
+
+* 导出数据库文件，使用工具查看
+* 使用测试框架查看
+* 使用命令行查看
+
+> adb shell --进入终端
+
+> cd /data/data/包名/databases --- 进入数据库文件存放位置
+
+> sqlite3 数据库名(如 sqlite3 stu.db)  --- 打开数据库
+
+>  select * from stu ; --- 查询数据库
+
+> 但是接下来会出现乱码，所以要参照以下步骤，修正即可。
+	
+		出现乱码要做的第一件事情，就是更改当前的页面编码，让它使用UTF-8编码。因为android系统本身使用的编码就是UTF-8,由于命令行使用的是GBK的编码
+		
+		1. 修改页面编码 
+				chcp  65001  --- change current page    utf-8编码
+		2. 修改字体 -- lucida console 
+
+
+
+###ListView
+
+> 是一个非常厉害的控件，可以显示庞大的数据， 就算这个数据有10几万条也不会造成内存溢出，程序也不会崩溃。
+
+
+1. 定义布局
+2. 查找控件
+
+		//内部使用的是mvc的模式设计的。 找到了view
+		ListView lv = (ListView)findViewById(R.id.lv);
+3. 定义适配器
+
+		/**
+		 * 方法参数要求的是ListAdapter ,但是实现这个接口，发现要写方法贼多，那怎么办呢?
+		 * 这个时候就去查看系统有没有已经实现好的类，我们只要继承这个类就可以了。
+		 */
+		class MyAdapter extends BaseAdapter{
+	
+			//用来控制listView上面到底显示多少个item(条目)
+			@Override
+			public int getCount() {
+				return 200000;
+			}
+			
+			
+			//用来控制到底每一个条目显示什么样子 以及 每一个条目里面显示什么数据
+			@Override
+			public View getView(int position, View convertView, ViewGroup parent) {
+				TextView tv = new TextView(MainActivity.this);
+				tv.setText("奥黛丽.赫本...."+position);
+				return tv;
+			}
+			
+			
+			//		----------------- 以下方法不用看------------------
+	
+			@Override
+			public Object getItem(int position) {
+				return null;
+			}
+	
+			@Override
+			public long getItemId(int position) {
+				return 0;
+			}
+
+	
+	}
+4. 关联适配器
+
+		//设置适配器
+		lv.setAdapter(new MyAdapter());
+
+
+> ListView 并不是一上来就显示全部的条目 ，而是显示当前手机一个版面（一屏）显示的条目数，当我们进行滚动的时候，就会有新的条目被创建显示， 也会有老旧的条目被回收释放内存 。
+
+
+####ListView的优化
+
+> 由于每显示一个条目对象，getView方法就会被调用一次。如果在这里面多次new条目对象，就有可能造成内存溢出的错误。
+
+> 为了解决这个问题，必须要重复利用以前曾经创建过的条目对象 ，只是让他们显示不同的数据而已。 这样无形中我们只需要创建少量的条目即可。
+
+		if(convertView == null){
+				// 表明---这是第一屏显示的条目，由于是第一屏显示，所以没有任何可回收的textView ，可重复利用
+				System.out.println("没有可重复利用的textView position ==="+position);
+				tv = new TextView(MainActivity.this);
+			}else{ //第二屏， 已经不是null, 表明有可重复利用的textView对象
+				System.out.println("有可重复利用的textView position ==="+position);
+				tv = (TextView) convertView;
+			}
+
+> 注意： 这里仅仅是ListView的初级优化，到后面做项目的时候有再一次的优化 。 2009年 谷歌I/O提出的View优化。
+
+####使用打气筒方式创建item
+
+1. 定义布局
+2. 引用布局
+
+		layout - 通过打气筒的方式变成-- View 
+			View view = View.inflate(MainActivity.this, R.layout.item, null);
+3. 查找控件
+
+		/**
+		* findViewById（） --- 去activity关联的那个布局里面找这个控件
+		* view.findViewById(); ---去转化成这个view的布局里面找这个控件
+		*/
+		ImageView iv = (ImageView)view.findViewById(R.id.iv);
+		TextView tv = (TextView)view.findViewById(R.id.tv);
+4. 设置数据
+
+		if(stu.getGender().equals("male")){ //男性
+				iv.setImageResource(R.drawable.nan);
+			}else{
+				iv.setImageResource(R.drawable.nv);
+			}
+			tv.setText(stu.getName());
+5. 显示view
+
+		return view ; 
+
+
+
+####MVC
+> m ： model
+
+> v: View
+
+> c：control
+
+
+###常见的对话框
+
+1. 确认取消对话框
+2. 单选按钮对话框
+3. 多选按钮对话框
+4. 进度对话框
+5. 进度条对话框
+
+
+####数据库事务
+
+> 指的就是一组操作(分多个小操作) 要么同时成功，要么一起失败。 如果有哪一个步骤失败了，那么就让事情回到最初的状态，就当没有发生过，这就是事务的回滚。
+
+		//打开事务
+		   db.beginTransaction();
+		   try {
+			   db.execSQL(sql);
+				s.length();
+				db.execSQL(sql2);
+				//给事务标记成成功
+		     db.setTransactionSuccessful();
+		   } finally {
+			   //结束事务，实际上就是提交事务
+		     db.endTransaction();
+		   }
+
+
+####常见的适配器
+
+1. BaseAdapter
+2.  ArrayAdapter -数组适配器
+
+> 当条目上只有一个textView的时候，用arrayAdapter最简单。
+
+3.  SimpleAdapter -- 简单适配器
+
+> 如果条目比较复杂， 比如左图右文的形式，那么可以是用这个适配器 ，只有当你的数据是List集合，并且里面的每一个元素又刚好是map集合。 否则全都都用baseAdapter
+
+
+####图像动画
+1. 在res 下面新建drawable文件夹【实际上该文件定义在哪个文件夹都可以，只不过android为了规范工程开发，所以就指定放道drawable下面了】
+2. 定义动画集合文件
+
+		<animation-list xmlns:android="http://schemas.android.com/apk/res/android" 
+	    android:oneshot="false">
+	    
+	    <!-- 交替显示这三张图片，每张图片显示200毫秒，显示完毕，然后重复运行显示。 -->
+	     <item android:drawable="@drawable/logo1" android:duration="50" />
+	     <item android:drawable="@drawable/logo2" android:duration="50" />
+	      <item android:drawable="@drawable/logo3" android:duration="50" />
+3. 在代码里面使用动画文件
+
+		ImageView iv = (ImageView)findViewById(R.id.iv);
+		
+		//设置背景资源
+		iv.setBackgroundResource(R.drawable.bg);
+		
+		//获取背景，强制类型转换成动画图像对象
+		AnimationDrawable animation = (AnimationDrawable) iv.getBackground();
+		
+		//开始播放动画
+		animation.start();
+
+
+
+####样式和主题
+
+* 样式 - style
+
+> 更多的是作用在控件身上
+
+* 主题 - theme
+
+> 更多的是作用在界面身上
+
+
+#重点与难点：
+* 数据库
+> 数据库创建、表创建、 CRUD业务实现
+
+
+* ListView
+
+> 显示数据、ListView优化、使用打气筒方式构建item条目、删除数据刷新界面、
+

@@ -1,0 +1,179 @@
+####重点：
+
+1. 网络请求
+2. handler消息处理
+3. 数据传输解析 （xml , json）
+4. 使用开源框架
+
+
+#####作业：
+
+1. 图片的缓存 
+2. 思路：
+
+> 1. 请求图片的时候，先判断内存里面有没有这张图片 ，如果有直接显示，如果没有再去查询磁盘里面有没有，如果还没有，则只有请求网络了。
+> 2. 请求网络上的图片下来之后，要加入到缓存里面 
+> 3. 加入到磁盘里面
+> 4. 显示图片
+
+
+
+
+###网络编程(从服务器获取数据)
+
+
+####图片查看器
+1. 定位资源
+
+		//1.定位资源 URL --- 统一资源定位符
+			URL url = new URL(path);
+2. 打开连接
+
+		//2. 打开连接
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+3. 获取输入流
+
+		//3.获取输入流 -- 实际上就是服务器返回的数据
+			InputStream is = conn.getInputStream();
+4. 转化输入流
+
+		//4. 我们真正想要的是图片  --- inputStream --- bitmap 位图
+			Bitmap bitmap = BitmapFactory.decodeStream(is);
+5. 显示图片
+
+		//5. 设置控件显示哪个图片
+			iv.setImageBitmap(bitmap);
+6. 关闭输入流
+
+		//6. 关闭输入流
+			is.close();
+
+####网络请求在高版本系统
+
+1. 出现一个异常 ，NetWorkOnMainThreadException . 为什么会出现这个异常呢?要解释这个原因，先得说说一个概念---ANR
+
+2. 早期的时候，在低版本(2.3及以前) 的时候，android并不判断当前的网络交互工作是否发生在主线程，但是到了高版本(4.0)之后，android为了让用户更好，在系统里面加入了一套检测机制。
+
+3. 为了解决刚才出现的这个异常，我们决定把网络交互的逻辑放到子线程里面去执行。但是又抛出了一个异常，这个异常说的是：只有在主线程才能构建View的视图以及与View进行交互，说简单点就是只有在主线程才可以更新UI.
+
+4. 为什么只有主线程才可以更新UI呢?  --- 主线程模型 -- 单线程模型。
+
+> 假设子线程也可以更新UI，那么我们必须要做好同步的设置，否则UI将会出现错乱的数据 。android为了简化程序员的开发，就做了一个决定：只有主线程才可以更新UI。 有少数控件也可以在子线程更新UI (ProgressBar  , SurfaceView)
+
+5. 实际上子线程也可以更新，只要不被系统抓到就可以了。当界面已经展示了之后，用户已经能看到界面了，如果还想更新，就会抛出以上的异常。
+
+####ANR
+
+> application not response  --- 应用程序无响应
+
+*  什么情况下会出现ANR呢?
+
+> 当主线程在忙于过多的工作时，一般都会抛出ANR 。 实际上android系统赋予了主线程极大的权利(任务、责任) ， 主要让主线程去响应用户的交互、或者是渲染显示界面  ， 所以，当主线程在做一件非常耗时的操作的时候，一般就会出现ANR了。
+
+
+####消息处理机制
+
+> 在子线程里面发送数据到主线程， 作用实际上就是线程间的数据传递，一般用于更新UI
+
+1. 创建消息处理器
+
+		//1. 定义消息处理器 ，里面有一个方法，是用来处理到来的消息的。
+		Handler handler = new Handler(){
+			//这个方法参数就是子线程发送过来的消息实体
+			@Override
+			public void handleMessage(Message msg) {
+				super.handleMessage(msg);
+	
+			}
+		}
+2. 在子线程发送消息
+
+		//创建消息实体
+		Message msg = new Message();
+					
+		//给消息里面的对象数据赋值
+		msg.obj = "当前的值是-----"+i ; 
+					
+		//2. 发送消息
+		handler.sendMessage(msg);
+3. 处理消息
+
+		//从消息实体里面获取数据
+		String str = (String) msg.obj;
+			
+		//更新UI
+		tv.setText(str);
+
+
+注意： 如果有多个地方都发送过来了消息，那么当前的消息处理地方只有一个，势必会造成混乱的现象，所以可以给消息打上标记，用于区分到底是什么消息。
+
+		//创建消息实体
+		Message msg = new Message();
+					
+		//给消息里面的对象数据赋值
+		msg.obj = bitmap ; 
+
+		msg.what = SUCCESS;
+					
+		//2. 发送消息
+		handler.sendMessage(msg);
+
+	-----------------------------------------------
+		在处理消息的时候，可以这样判断：
+
+			switch (msg.what) {
+			case SUCCESS:
+				Bitmap bitmap = (Bitmap) msg.obj;
+				
+				setImageBitmap(bitmap);
+				break;
+			case ERROR:
+				//如果请求失败或者是没有找到图片就设置默认的一张图片。
+				int resId = (Integer) msg.obj;
+				setImageResource(resId);
+				break;
+
+			}
+
+
+####User-Agent
+
+> 服务器根据客户端来访的请求，判定当前的客户端是什么类型的客户端。
+
+
+####中文乱码
+
+##### 服务器返回数据出现乱码
+
+1. 服务器直接使用UTF-8进行编码
+
+2. 客户端使用与服务器端一样的编码进行解码数据。
+
+
+
+
+
+###服务器返回的属性形式
+
+* xml -- 电话归属地查询
+
+> 网络请求 + XML解析  + Handler消息处理器
+
+* json
+	1. 但凡看见大括号，一定是一个JSONObject
+	2. 如果看见中括号， 一定是一个JSONArray
+
+
+
+###新闻服务器搭建
+
+1. 拷贝news.xml 和 img到tomcat 根目录中的webapps/root下
+2. 找到tomcat中的bin 目录 ，然后双击 startup.bat
+	> 如果第二步一闪而过，那是因为没有配置环境变量，可以打开一个控制台，然后把startup.bat丢进去，回车就会有提示。根据提示配置环境变量即可。 
+
+
+
+
+
+
+

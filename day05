@@ -1,0 +1,201 @@
+###网络请求(提交数据)
+
+* GET
+> 优点： 编写起来比较简单
+
+> 缺点： 不安全 、 提交的数据长度有限制
+
+* POST
+
+> 缺点： 编写起来比较麻烦
+
+> 优点：数据提交比较安全 ， 使用的是流的形式写的数据 ，提交的长度没有限制。
+
+
+####使用Post提交数据
+
+1. 设置请求路径
+
+		//a. 修改路径，不带任何的数据
+    	final String path = "http://10.0.2.2:8080/MYQQ/LoginServlet";
+		//拼接提交的数据
+					String data = "name="+name+"&pwd="+pwd ; 
+2. 设置请求方式
+
+		//b. 设置当前请求的类型是
+		conn.setRequestMethod("POST");
+3. 设置提交的内容类型
+
+		//c. 设置提交的内容类型
+		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+4. 设置提交的内容长度
+
+		//d. 设置提交的数据长度
+		conn.setRequestProperty("Content-Length", data.length()+"");
+5. 打开输出流开关
+
+		//e . 打开输出流开关
+		conn.setDoOutput(true);
+					
+					
+6. 开始写数据
+
+		//f. 开始写数据给服务器
+		conn.getOutputStream().write(data.getBytes());
+
+
+
+###中文乱码
+
+### 服务器返回数据出现乱码（两个办法）
+
+1. 服务器端使用UTF-8进行编码数据(服务器端默认的码表是GBK)
+
+2. 客户端使用与服务器端一样的码表进行解码数据 （客户端默认的码表是UTF-8） 
+
+
+### 客户端提交数据出现乱码(两个步骤)
+
+1. 客户端在提交中文的时候必须要对其进行URL编码。
+
+		final String path = "http://10.0.2.2:8080/MYQQ/LoginServlet?name="+URLEncoder.encode(name)+"&pwd="+pwd;
+
+2. 服务器端使用与客户端一样的码表进行解码数据
+
+		//1. 获取到账号信息
+		/**
+		 * 这两行代码默认使用的将是ISO-8859-1的码表进行解码数据 
+		 * utf ----- ISO-8859-1
+		 */
+		String name = request.getParameter("name");
+		String pwd = request.getParameter("pwd");
+		
+		System.out.println("name="+name+"---pwd="+pwd);
+		
+		/**
+		 * 先把得到的字符串全部转成0011的形式，并且早前使用的是ISO的编码转成的字符，现在应该也用ISO的编码
+		 * 让这个数据回到最初的0011的状态，回到这个状态之后，在使用与客户端一样的编码来进行解码，就可以得到正常的中文了。
+		 * 
+		 */
+		String newName = new String(name.getBytes("ISO-8859-1"), "UTF-8"); 
+
+
+###使用httpclient提交数据
+
+1. 定义客户端
+
+		//1. 创建客户端 --- 等同于一个浏览器
+    	HttpClient  client = new DefaultHttpClient();
+2. 定义请求类型
+
+		//2. 创建一个get请求
+    	HttpGet request = new HttpGet(path);
+3. 执行请求，获取返回数据
+
+		//3. 执行一个请求 获取到服务器返回的响应对象
+    	HttpResponse response = client.execute(request);
+4. 判断状态码
+
+		//4.获取状态行里面的状态码
+    	int code = response.getStatusLine().getStatusCode();
+5. 获取响应的数据实体
+
+		/获取到返回的数据实体，在获取里面的输入流
+    	InputStream is = response.getEntity().getContent();
+
+--------------------------------------------------------
+
+1. 定义客户端
+
+		//1. 创建客户端 --- 等同于一个浏览器
+    	HttpClient  client = new DefaultHttpClient();
+2. 定义请求类型
+
+		//2. 创建一个post请求
+    	HttpPost request = new HttpPost(path);
+3. 指定请求所带的参数
+
+		//构建提交的数据参数集合
+    				List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+    				parameters.add(new BasicNameValuePair("name", name));
+    				parameters.add(new BasicNameValuePair("pwd", pwd));
+    				
+    				//构建一个url编码过的form表单实体对象
+    				HttpEntity entity = new UrlEncodedFormEntity(parameters ,"utf-8");
+    				//设置post所带的数据实体
+    				request.setEntity(entity);
+4. 执行请求
+	
+		
+//3. 执行一个请求 获取到服务器返回的响应对象
+    	HttpResponse response = client.execute(request);
+5. 与Get一样。
+
+
+>  注意： httpClient这个API在5.0之后就已经被谷歌标记为过时了，原因是里面的API数量众多、维护起来比较麻烦，到6.0之后，就已经完全不可用了，所以android建议是用HttpURLConnection去替代。
+
+
+> 接口回调，说白了，就是人家定义了接口的参数类型，我们传过去是一个接口的实现对象，对面已经拿到了对象，根据请求的返回不同，而调用不同的对象中的方法(回调的方法)
+
+
+###文件上传
+
+	1. 服务器拷贝jar包lib下
+	2. 编写servlet ，处理post方法
+
+
+
+
+		//1. 创建异步的客户端
+			AsyncHttpClient client = new AsyncHttpClient();
+			
+			//封装提交的参数对象
+			 RequestParams params = new RequestParams();
+			 //指定的是上传的文件对象
+			 params.put("file", file); // Upload a File
+
+			//3. 执行post请求
+			client.post(url, params, new TextHttpResponseHandler() {
+				
+				@Override
+				public void onSuccess(int statusCode, Header[] headers,
+						String responseString) {
+					Toast.makeText(MainActivity.this, "上传成功", 0).show();
+				}
+				
+				@Override
+				public void onFailure(int statusCode, Header[] headers,
+						String responseString, Throwable throwable) {
+					// TODO Auto-generated method stub
+					
+					Toast.makeText(MainActivity.this, "上传失败", 0).show();
+				}
+			});
+
+> 注意： 如果在4.3或者4.4之后的模拟器运行，要记得添加对SD卡读取的权限，否则将无法上传文件到服务器
+
+
+### 多线程下载
+
+* 网络请求
+* 线程并发--同步设置。
+
+
+####为什么多线程下载的速度比较快?
+
+> 因为单位时间内，多个线程获取到的资源会比较多，工作效率比单线程要高。 多线程的下载速度要受服务器的上行带宽和客户端的下行带宽限制。
+
+
+
+####多线程的断点续传
+
+
+###硬盘概念
+
+> 机械硬盘
+
+
+> 固态硬盘
+
+--------------
+开源框架xutils实现断点续传

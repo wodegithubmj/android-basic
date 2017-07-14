@@ -1,0 +1,213 @@
+###多界面的应用
+
+1. 编写布局
+2. 定义activity，指定显示的布局
+3. 注册activity
+
+##### 重要的概念：
+
+*  <action android:name="android.intent.action.MAIN" />
+
+> 当前的界面作为程序的入口
+
+
+*  <category android:name="android.intent.category.LAUNCHER" />
+
+> 当前的界面作为会在应用程序列表里面生成一个快捷方式
+
+
+
+####数据传递
+
+##### 传递数据
+
+1. 构建intent
+
+		Intent intent = new Intent();
+2. 设置数据
+
+		//给下一个界面传递数据 
+		intent.putExtra("name", name);
+		intent.putExtra("gender", id);
+
+		//给下一个界面传递数据 
+		intent.putExtra("name", name);
+		intent.putExtra("gender", id);
+
+
+		Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.logo);
+		
+		intent.putExtra("icon", bitmap);
+3. 启动界面
+
+		startActivity(intent);
+
+
+##### 获取数据
+
+		//获取到上一个界面封装的intent对象
+		Intent intent = getIntent();
+		
+		//下面都是从intent里面获取数据，上一个界面封装的是什么类型，这个界面取得就是什么类型的数据
+		String name = intent.getStringExtra("name");
+		
+		int id = intent.getIntExtra("gender", 0);
+		
+		Student stu = (Student) intent.getSerializableExtra("stu");
+		
+		Bitmap bitmap = intent.getParcelableExtra("icon");
+
+
+
+###显式意图和隐式意图
+
+* 显式意图
+
+>  从代码是就可以知道要跳转到哪一个界面，我们只要指定跳转界面的字节码对象就可以了。
+
+> 一般是用来启动自己应用的内部界面
+
+* 隐式意图
+
+> 从代码上没法看出跳转的具体界面，需要指定action \ data
+
+> 用来启动其他应用程序的界面  
+
+> 一般自己做的应用程序都很少会暴露出来，给其他应用程序启动。 用它来启动系统的应用程序界面 如： 打开浏览器 、 打电话、 QQ聊天(发照片)
+
+
+###隐式意图的详细参数
+
+* action
+
+> 指定当前activity所处的动作，只有满足这个动作才能启动这个界面
+
+
+
+* category
+
+> 指定当前activity的分类，只要不是launcher，就都是default分类
+
+* data
+
+> 指定启动界面要带上的数据  mimetype ---数据类型，数据格式。 一般这里都很少自己声明，多数情况下都是去访问系统的时候，带上规定的数据就可以了。
+
+
+###使用隐式意图启动系统应用
+
+* 启动浏览器
+
+* 启动编写短信的界面
+
+
+
+####requestCode  和 resultCode 的区别
+
+* requestCode
+
+> 请求码 ， 它使用来区分，如果当前的界面有多个请求出去，就用它来判别到底是哪一个请求的数据已经回来了。
+
+
+* resultCode
+
+> 结果码  它是用来区分下一个界面可能返回不同种类型的数据。
+
+
+###activity生命周期
+
+* 生命周期
+
+> 一类事物从出生到死亡经过的时间段
+
+* 生命周期方法
+
+> 对象从创建到销毁所调用的方法。
+		
+
+* 创建与销毁 --onCreate  和 onDestroy
+
+>  应用场景： 在onDestroy 保存数据，在onCreate方法里面回显数据
+
+
+* 可见与不可见 - onStart 和  onStop
+
+> 应用场景：  界面可见的时候播放视频 ，不可见的时候暂停视频的播放。
+
+* 暂停和继续  - onResume 和 onPause
+
+> 应用场景： 获取到了焦点 和 失去焦点 。 
+
+
+###重要的概念
+
+* entire lifetime  - 完整的生命周期
+
+> onCreate【创建】 -- onStart【可见】 --onResume【获得焦点】 -- onPause【失去焦点】 --- onStop【不可见】 -- onDestroy【销毁】
+
+* visible lifetime -- 可视生命周期
+
+> onStart -- onResume  -- onPause  -- onStop
+
+* foreground lifetime  -- 前台生命周期
+
+> onResume -- onPause
+
+
+###横竖屏的生命周期
+
+> 横竖屏切换的生命周期是什么样的？ -- 先销毁当前的界面，然后再重新创建一次。
+
+* 直接写死了界面的方向 是竖直方向或者是水平方向
+> android:screenOrientation="landscape|portrait" 
+
+* 根据手机屏幕方向来自由显示
+> android:configChanges="keyboardHidden|screenSize|orientation"
+
+
+###任务和任务栈
+
+* Task
+>  一般情况下一个应用程序可以拥有多个界面，那么一个界面实际上就是一个任务，一个Task
+
+* Stack
+
+> 栈 ，是一种数据格式 （后进先出）， 队列 也是一种数据格式（先进先出） ， 用来记录当前的应用程序已经打开了那些界面，曾经启动过哪些任务。 如果应用程序里面的栈已经清空了，那么代表这个应用程序已经退出了。
+
+
+> 一个应用程序可以拥有多个任务栈
+
+
+###activity的启动模式
+
+* standard -- 标准  默认的启动模式
+
+> 特点： 启动多少次这个界面，就会有多少个实例被压到栈中。 
+
+
+* singleTop -- 单一顶部模式
+
+> 特点： 如果当前的界面已经位于栈顶，那么将不会继续创建该界面的实例。只要不是在栈顶，就继续创建实例，压入栈中。
+
+> 应用场景：  为了避免出现一些奇怪的现象  短信编写界面。
+
+* singleTask --单一任务模式
+
+> 特点： 如果启动的界面已经存在栈中，那么将不会再创建该界面的实例，而是复用以前的实例对象，并且把原来的实例与栈顶之间的其他界面实例全部清除。
+
+> 应用场景： 如果一个界面创建非常的消耗CPU 、内存的开销。 浏览器的显示界面
+
+
+* singleInstance --- 全局唯一模式
+
+> 特点： 如果哪个界面声明的是这种启动模式，那么该界面的实例将会存放在单独的一个栈中，并且这个栈里面有且只有它自己一个实例，以后要想显示这个界面，要做就是切换显示不同的任务栈而已。
+
+> 应用场景： 如果一个界面单位时间内创建的频率非常的高，那么就可以使用这个模式。 通话界面
+
+
+
+#### 重点
+
+1. 隐式意图和显式意图
+2. 数据传递(正向传递 和 反向传递)
+3. 生命周期
+4. 启动模式

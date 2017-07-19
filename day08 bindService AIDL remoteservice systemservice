@@ -1,0 +1,263 @@
+### 启动服务
+
+* startService
+
+* bindService
+
+
+
+###绑定服务的步骤
+
+1. 定义一个类 ， 继承Service
+
+		public class ServiceDemo extends Service {
+2. 注册Service
+
+		<service android:name="com.itheima.bindservice.ServiceDemo"></service>
+3. 在Service里面定义一个方法
+
+		/**
+		 * 获取录取通知书
+		 * @param name  姓名
+		 * @param money 钱
+		 */
+		public void methodInService(String name , int money){
+			if(money < 100000){
+				Toast.makeText(this, "钱不够!", 0).show();
+				return ;
+			}
+			Toast.makeText(this, name+"先生，您的中国人民大学本科录取通知书已经办妥.", 0).show();
+		}
+4. 在服务内部声明代理人员
+
+		/**
+		 * 这是一个内部人员
+		 */
+		class MyBinder extends Binder{
+			/**
+			 * 这是内部人员对外暴露的方法，里面也只做一件事情，这件事情就是去帮忙获取录取通知书。
+			 * @param name
+			 * @param money
+			 */
+			public void callMethodInService(String name  , int money){
+				methodInService(name, money);
+			}
+		}
+5. 在onBind方法返回内部代理人员的对象
+
+		/**
+		 * 如果activity能够成功绑定上服务，那么这个方法将会被调用。
+		 * 
+		 * 应该在这里返回内部人员的对象 ， 给activity持有
+		 */
+		@Override
+		public IBinder onBind(Intent intent) {
+			return new MyBinder();
+		}
+6. 准备ServiceConnction
+
+		class MyConn implements ServiceConnection{
+	
+			/**
+			 * 当服务已经能够成功启动了，这个方法将会被调用，里面有两个参数
+			 * 
+			 * 参数一：组件名称(服务所处的包， 服务所处的类全路径地址)
+			 * 参数二： 服务绑定成功之后返回的通讯频道，说的通透一点，就是onBind方法的返回值，就是参数二service，
+			 * 具体一点就是说这里的service就是服务内部的myBinder对象
+			 */
+			@Override
+			public void onServiceConnected(ComponentName name, IBinder service) {
+				// IBinder service  =  new MyBinder();  --- 向上转型
+				//MyBinder binder =  (MyBinder)service(); -- 向下转型。
+				
+				
+				binder = (MyBinder) service;
+			}
+	
+			/**
+			 * 非正常关闭服务的时候调用 ， 服务内部出错自己挂掉，或者是系统需要内存，关闭了服务
+			 */
+			@Override
+			public void onServiceDisconnected(ComponentName name) {
+				
+			}
+			
+		}
+7. 绑定服务
+
+		//启动服务 --- startService
+		//绑定服务--- bindService
+		
+		Intent service = new Intent(this , ServiceDemo.class);
+		
+		// BIND_AUTO_CREATE : 如果服务还不存在就先创建服务，然后再绑定服务，如果已经存在了，那么久直接绑定
+		// 所谓的绑定服务，就是在系统框架里面有一个Map集合 ， 使用绑定的activity上下文作为key , 绑定的服务对象
+		// 座位value.
+		conn = new MyConn() ; 
+		bindService(service,conn , BIND_AUTO_CREATE);
+8. 根据代理对象调用服务中的方法
+
+		binder.callMethodInService("张三丰", 50000000);
+9. 解除绑定
+
+		//解除绑定服务，这里的conn 必须是上面绑定服务所使用的conn对象，不能new一个新的
+		unbindService(conn );
+
+
+
+###暴露接口隐藏内部实现
+
+1. 定义一个接口
+
+		/**
+		 * 中国人民大学对外暴露的一个功能。
+		 * 能够帮助广大学子办录取通知书
+		 */
+		public interface IService {
+		
+			
+			/**
+			 * 办录取通知书
+			 * @param name 姓名
+			 * @param moeny 钱
+			 */
+			void callMethodInService(String name , int moeny );
+		}
+2. 让内部类实现接口
+
+		/**
+		 * 这是一个内部人员
+		 */
+		 private class MyBinder extends Binder implements IService{
+			/**
+			 * 这是内部人员对外暴露的方法，里面也只做一件事情，这件事情就是去帮忙获取录取通知书。
+			 * @param name
+			 * @param money
+			 */
+			 @Override
+			public void callMethodInService(String name  , int money){
+				methodInService(name, money);
+			}
+		}
+3. 绑定服务的时候转型成接口类型
+
+		iservice = (IService) service;
+4. 调用服务中的方法
+	
+		//这里的iservice虽然是IService接口这种类型，但是实际上调用的时候并不是找接口，而是找接口的实现类，---MyBinder
+		iservice.callMethodInService("张三丰", 50000000);
+
+
+> 为什么要做这种事情呢? -- 感觉好复杂。
+
+> 原因是： 有的时候，我们要绑定远程服务 --- 我们要调用其他应用里面的服务，人家是不会告诉你，服务的名称的，但是会告诉你有一个接口。
+
+
+
+###绑定服务的生命周期
+
+* 完整生命周期
+
+> onCreate -- onBinder -- onUnBind -- onDestroy
+
+* 多次绑定
+
+> 多次绑定并不会代用多次生命周期方法，但是解除的时候有可能出现异常。
+
+* 多次解绑定
+
+> 会抛出服务没有注册的异常
+
+> 总结： 建议绑定一次， 解绑一次 。
+
+
+###两种启动服务的区别
+
+##### startService
+
+1. 生命周期： onCreate -- onStartCommand - onDestroy
+2. 与服务进行通讯： 通过intent传递code 
+3. 与开启者(activity)关系： 一旦服务启动，即使activity已经销毁了，服务依然存活
+4. 在设置应用里面有显示运行的服务：
+
+
+##### bindService
+
+1. 生命周期：  onCreate -- onBind -- onUnBind-- onDestroy
+2. 与服务进行通讯： 内部对象，假借他人之手，去调用服务的方法
+3. 与开启者(activity)关系： 一旦开启者已经销毁了，那么服务也将随之停止  -- 一荣俱荣，一损俱损
+4. 不显示运行的服务
+
+
+
+####混合开启服务
+
+1. 使用startService启动服务，能够让服务长期在后台运行，但是没有办法直接调用服务中的方法。
+2. 使用bindService绑定服务，可以与服务进行通讯，但是没有办法让服务长期在后台运行
+
+* 能不能让服务一直在后台运行，并且还能够与服务进行通讯呢?
+
+####步骤：
+
+1. 启动服务
+2. 绑定服务
+3. 调用服务中的方法
+4. 解除绑定
+5. 停止服务
+
+
+###本地服务和远程服务
+
+* 本地服务
+
+> 当前的服务运行在自己的应用程序里面
+
+* 远程服务
+
+> 服务运行在其他的应用程序里面。
+
+
+
+###重要的概念
+
+* 进程
+
+> 系统给应用程序分配的一块独立的内存空间
+
+
+* 进程间通讯 -- IPC
+
+> inter process communication  
+
+* AIDL
+
+> 安卓接口定义语言  -- android  interface definition language
+
+
+####使用AIDL访问远程服务的步骤
+
+1. 修改IService的后缀   .java  --- .aidl
+2. 去掉aidl文件中public关键字
+3. 修改MyBinder里面继承关系
+
+		private class MyBinder extends IService.Stub{
+4. 拷贝aidl文件到其他应用的同名包下
+5. 转化远程服务的内部对象
+
+		iservice = IService.Stub.asInterface(service);
+6. 调用服务的方法
+
+
+####远程服务的意义
+
+> 自己的应用想要集成其他应用中的某个功能，其他应用一般是把这个功能内部实现隐藏了，暴露出来一个接口 。  支付集成.
+
+
+####系统服务
+
+* 获取系统服务
+
+> XXXManager manager = (XXXManager)getSystemService(系统服务的名称)
+
+
+####电话窃听器

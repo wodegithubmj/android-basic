@@ -1,0 +1,222 @@
+###android组件
+* activity
+* broadcast receiver
+* service
+* content provider  -- 内容提供者
+
+####内容提供者
+
+> 一般情况下，应用所创建的额数据库只有自己才能进行读写操作，其他的应用程序是不具备读写权限的。但是，有的时候如果真的想把自己的数据库数据暴露出来，供其他程序访问， 那么久应该借助： 内容提供者了。aidl 暴露的是内存中的数据 ， 内容提供者暴露的是磁盘中的数据
+
+> 所见场景： 联系人或者是短信的备份与还原。
+
+
+####使用内容提供者的步骤
+
+1. 定义一个类， 继承ContentProvider
+
+		/**
+		 *  这是银行内部的人员，行长的小舅子 ， 实际上就是一个内容提供者
+		 *  它里面拥有CRUD的方法，暴露出来，供其他程序访问。 
+		 */
+		public class Backdoor extends ContentProvider {
+2. 注册contentprovider ， 要记得加上authorities
+
+		!--         
+        注册内容提供者，要求必须给定authorities 属性，该属性的意思就是相当于口令，外部程序要想来操作
+        内容提供者，必须得说出这个口令，否则将不帮它干活 -->
+        <provider android:name="com.itheima.db.Backdoor" 
+            android:authorities="com.itheima.db.BANK"></provider>
+    </application>
+3. 定义一个UriMatcher -- uri的匹配器
+
+		// 因为该应用一安装就会暴露出来口令叫什么， 每个人只要拥有了口令就可以来拜托这个内容提供者帮他干活。
+		// 那么这个时候行长就必须与小舅子进行协商，对口令进行升级优化  ，其他程序来访的时候都带上了口令，赋值到了uri
+		//对象里面去了，这个时候，内容提供者就必须再一次验证uri ， 
+		//1. 定义uri的匹配器  --- 后面的参数：代表的是如果匹配器匹配不成功，将返回里面的数值 -1
+		static UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
+4. 使用静态代码块来预设匹配规则
+
+		static{
+	
+		// 给匹配器预设一套匹配规则 ， 参数一： 作者名 ， 参数二： path【可以看成是：2.0口令】 ，  参数三： 匹配上之后返回的状态码
+		//一般path不写一些无意义的单词，多数情况下，这里写的数据库的表名， 那么为什么写的是表名呢?
+		//因为在外部程序，可以通过口令能够知道指定的路径或者是指定的口令到底访问的是哪一张表。
+			matcher.addURI("com.itheima.db.BANK", "account", 1);
+		/*	matcher.addURI("com.itheima.db.BANK", "stu", 2);
+			matcher.addURI("com.itheima.db.BANK", "teacher",3);
+			matcher.addURI("com.itheima.db.BANK", "worker", 4);
+			matcher.addURI("com.itheima.db.BANK", "。。。", 5);*/
+		}
+		
+5. 在CRUD方法里面判断来访的uri口令，如果通过就让其访问数据库
+
+		if(matcher.match(uri) == 1 ){
+			//要访问accoutn
+			System.out.println("delete---");
+			
+			//并不是第一次见过getContext --- 测试框架 -单元测试
+			DB db = new DB(getContext());
+			
+			SQLiteDatabase database = db.getWritableDatabase();
+			
+			//删除数据， 根据外部程序提供的参数去删除
+			database.delete("account", selection, selectionArgs);
+			
+		}else{
+			throw new IllegalArgumentException("口令错误，滚犊子.!");
+		}
+6. 在外部程序使用内容解析者访问内容提供者
+
+	// 增加
+	public void insert(View v) {
+
+		// 其他程序是通过content Provider 【内容提供者】暴露数据
+		// 我们应该通过 content resolver【内容解析者】 获取数据 （操作内容提供者）
+		// 1. 获取到内容解析者对象
+		ContentResolver resolver = getContentResolver();
+		// 这是往数据库添加的对象 列名 --- 值
+		ContentValues values = new ContentValues();
+		values.put("name", "zhangsan");
+		values.put("money", 1000);
+
+		// 指定访问的是哪一个内容提供者，这里要给定的是早前注册内容提供者的authorities
+		// 并且，口令前面还要加上content.否则将无法找到内容提供者
+		// http://www.baidu.com/news/img.jpg;
+		Uri uri = Uri.parse("content://com.itheima.db.BANK/account");
+
+		// 3. 执行内容提供者的insert方法
+		resolver.insert(uri, values);
+
+	}
+
+####学习内容提供者的目的
+
+> 一般情况下，我们都很少去定义内容提供者，把自己的数据暴露出来给其他程序访问。 之所以学习这个内容提供者，是为了帮助我们了解内部的原理实现【工作方式】 ， 
+
+> 更多的是用内容提供者是去访问系统的应用，或者系统应用暴露出来的数据: 联系人的数据，短信的数据.
+
+
+###添加和删除短信
+
+		// 1. 得到内容解析者
+		ContentResolver resolver = getContentResolver();
+		// 后面的path不写， 默认就是写入到收件箱里面。
+		Uri uri = Uri.parse("content://sms");
+		ContentValues values = new ContentValues();
+		// 短信内容
+		values.put("body", "尊敬的张三先生，恭喜您，荣获好市民奖，希望您在以后的生活中，勇于和敢于扶老奶奶过马路。");
+		// 收到或者发短信的时间
+		values.put("date", System.currentTimeMillis());
+
+		// 发件人或者收件人
+		values.put("address", "110");
+		// 短信的类型是收到的短信
+		values.put("type", 1);
+		resolver.insert(uri, values);
+
+
+		--------------------------------------
+
+		// 1. 得到内容解析者
+		ContentResolver resolver = getContentResolver();
+
+		// 后面的path不写， 默认就是写入到收件箱里面。
+		Uri uri = Uri.parse("content://sms");
+		
+		resolver.delete(uri, "address=?", new String[]{"110"});
+		Toast.makeText(this, "删除短信成功", 0).show();
+
+
+####界面提醒
+
+* Toast
+* Dialog
+* Notification --- 通知
+
+> 通知是运行在其他的进程里面， com.android.systemui
+
+
+
+
+###注意的细节
+
+1. 如果使用的是4.3或者4.4 ， 那么内容提供者默认是不允许外部程序访问的。如果想让其他程序访问到，就加上以下的内容 
+
+		<provider android:name="com.itheima.db.Backdoor" 
+		            android:authorities="com.itheima.db.BANK" android:exported="true"></provider>
+		
+> android:exported="true"
+
+2. 如果用的是4.4或者5.0的版本以及之后，演示短信添加和删除的功能。 这个是办不到的。 app ops
+
+
+
+###联系人的内容提供者
+
+* 注意的数据库表
+	1. raw_contacts
+	2. data
+	3. mimetype
+
+
+#####删除联系人
+
+> 在删除联系人的时候，并不是直接把这一条记录给删除掉，而是仅仅把contact_id给做成null， 原因是因为日后同步数据，与服务器的数据进行比较的时候，实现起来就变得非常的简单了。
+
+
+####内容观察者
+
+> 作用： 用来观察某一个路径下的数据，有没有变更，有变更并且有人把这个事情发布出来，那么观察者就能收到通知
+
+
+		//发布通知：
+			
+			// 发布出来一个通知
+			//参数一： 指的什么是路径下的数据已经发生改变了
+			//参数二： 内容观察者的对象，如果给定是一个确确实实的对象，一旦数据发生了改变，那么这个观察者就会收到通知
+			//如果给的null， 那么将不会有明确的内容观察者收到信息，但是如果有人一直默默的观察这个路径 (uri) , 那它也能收到通知。
+			getContext().getContentResolver().notifyChange(uri, null);
+
+		-------------------------------------------------------------------
+
+		//接收通知
+
+		//注册内容观察者
+		 /* 参数一：  指定观察的路径
+		 * 参数二：  是否只要满足uri的前半段也能收到通知， true --是 ， false -- 所有的字母都必须完全匹配
+		 *  参数三： 内容观察者的对象，用来接收通知
+		 */
+		
+		Uri uri = Uri.parse("content://com.itheima.db.BANK/account") ; 
+		getContentResolver().registerContentObserver(uri, true, new MyObserver(new Handler()));
+
+
+
+
+###重点
+
+1. 自定义内容提供者
+2. 去访问系统的内容提供者  （短信和联系人） 
+3. 通知[次重点]
+
+###作业：
+
+1. 联系人或者短信的备份(xml方式保存数据)与还原助手
+
+
+####四大组件 总结
+* activity 到底能干什么?
+* service 
+* content provider
+> 前三个都是可以访问其他应用中的
+
+
+-------------------------------
+
+* broadcast receiver  :
+
+> 我只要把广播发布出来，根本不管这个广播有多少个人会收到，也不管是谁收到。
+
+
+

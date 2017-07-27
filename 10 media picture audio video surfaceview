@@ -1,0 +1,74 @@
+###图像的操作方式
+
+* 图像的平移
+* 图像的缩放
+* 图像的旋转
+
+
+###图像操作方式的步骤
+
+
+1. 得到原图
+
+		Bitmap srcBitmap = BitmapFactory.decodeFile("/mnt/sdcard/tp1.jpg");
+2. 创建拷贝
+
+		/**
+		 * 要想去操作一张图片 ： 平移、 缩放、 旋转 ， 不能再原图的基础上做。
+		 * 必须要重新自己作画，然后在画上自己修改，某一个地方。
+		 */
+				
+		// 1. 创建拷贝 -- 注意： 这里仅仅是得到一张空白的纸张，里面什么东西都没有，我们要自己在这张纸张上作画
+		Bitmap copyBitmap = Bitmap.createBitmap(srcBitmap.getWidth(),
+				srcBitmap.getHeight(), srcBitmap.getConfig());
+3. 创建画板
+
+		// 2. 创建画板 -- 画布 -- 指定空白的纸张，一会在上面作画
+		Canvas canvas = new Canvas(copyBitmap);
+4. 创建画笔
+
+		// 3. 创建画笔
+		Paint paint = new Paint();
+5. 创建矩阵
+
+		// 4. 创建矩阵 如果不给矩阵指定任何的设置，那么这里将是1：1的大小
+		Matrix matrix = new Matrix();
+6. 开始作画
+		
+		// 5. 开始作画 -- 参数一： 参照哪张图开始作画， 参数二： 矩阵 ，参数三： 画笔
+		canvas.drawBitmap(srcBitmap, matrix, paint);
+7. 显示图片
+
+		//6. 显示图片
+		iv_copy.setImageBitmap(copyBitmap);
+
+
+
+###getX 和 getRawX的区别
+
+* getX
+
+> 当前的触摸位置到控件的左边间距
+
+* getRawX
+
+> 当前的触摸位置到屏幕的左边间距
+
+
+###声音
+
+* MediaPlayer
+
+* SoundPool -- 声音池
+
+> 线程池  -- 
+
+> 一般来说单位时间内出现频率极高，并且声音的长度都不是很长的音频文件，一般都是用SoundPool去实现 ： 游戏中的特效。
+
+
+###视频
+
+
+* VideoView
+
+* SurfaceView
